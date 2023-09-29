@@ -26,6 +26,11 @@ import org.springframework.context.annotation.Import;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 import org.springframework.web.servlet.DispatcherServlet;
 
+import javax.annotation.PostConstruct;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
+
 @ServletComponentScan(basePackageClasses = {RestfulServer.class})
 @SpringBootApplication(exclude = {ElasticsearchRestClientAutoConfiguration.class, ThymeleafAutoConfiguration.class})
 @Import({
@@ -45,6 +50,26 @@ public class Application extends SpringBootServletInitializer {
 
     //Server is now accessible at eg. http://localhost:8080/fhir/metadata
     //UI is now accessible at http://localhost:8080/
+  }
+
+  @PostConstruct
+  public void createCustomTable(){
+	  EntityManagerFactory emf = Persistence.createEntityManagerFactory("customPersistenceUnit");
+	  EntityManager em = emf.createEntityManager();
+
+	  try {
+		  em.getTransaction().begin();
+		  em.createNativeQuery("CREATE TABLE if not exists custom_patient (id SERIAL PRIMARY KEY, name VARCHAR(255), age INT)").executeUpdate();
+		  em.getTransaction().commit();
+	  } catch (Exception e) {
+		  e.printStackTrace();
+		  if (em.getTransaction().isActive()) {
+			  em.getTransaction().rollback();
+		  }
+	  } finally {
+		  em.close();
+		  emf.close();
+	  }
   }
 
   @Override
